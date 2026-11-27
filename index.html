@@ -119,6 +119,6 @@ function clearData(){if(confirm('Delete all weight and workout records from this
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 document.getElementById('foodScanUrl').value=localStorage.getItem(SCAN_URL_KEY)||'';document.getElementById('foodScanPasscode').value=localStorage.getItem('transformFoodScanPasscode')||'';
 document.getElementById('weightDateInput').value=new Date().toISOString().slice(0,10);ensureRecordIds();renderExercises();render();syncData();
-if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('App update check failed',e)}});window.addEventListener('focus',()=>syncData());document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncData()});
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('App update check failed',e)}});window.addEventListener('focus',()=>syncData());window.addEventListener('pageshow',()=>syncData());window.addEventListener('online',()=>syncData());document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncData()});setInterval(()=>{if(!document.hidden&&navigator.onLine)syncData()},60000);
 </script>
 </body></html>
