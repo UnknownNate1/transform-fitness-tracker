@@ -32,11 +32,14 @@ export default {
     const previous=found?JSON.parse(found.data_json):{};
     const deleted=new Set([...(Array.isArray(previous.deletedIds)?previous.deletedIds:[]),...(Array.isArray(incoming.deletedIds)?incoming.deletedIds:[])]);const trashMap=new Map();for(const item of [...(Array.isArray(previous.trash)?previous.trash:[]),...(Array.isArray(incoming.trash)?incoming.trash:[])]){if(!item||!item.id||deleted.has(item.id))continue;const old=trashMap.get(item.id);if(!old||String(item.deletedAt||"")>=String(old.deletedAt||""))trashMap.set(item.id,item)}
     const trashedIds=new Set([...trashMap.values()].filter(t=>{const active=[...(Array.isArray(previous.weights)?previous.weights:[]),...(Array.isArray(incoming.weights)?incoming.weights:[]),...(Array.isArray(previous.workouts)?previous.workouts:[]),...(Array.isArray(incoming.workouts)?incoming.workouts:[]),...(Array.isArray(previous.nutrition)?previous.nutrition:[]),...(Array.isArray(incoming.nutrition)?incoming.nutrition:[])].filter(r=>r&&r.id===t.id).sort((a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")));return !active.length||String(t.deletedAt||"")>String(active[0].updatedAt||"")}).map(t=>t.id));
+    const archiveMap=new Map();for(const item of [...(Array.isArray(previous.archive)?previous.archive:[]),...(Array.isArray(incoming.archive)?incoming.archive:[])]){if(!item||!item.id||deleted.has(item.id))continue;const old=archiveMap.get(item.id);if(!old||String(item.archivedAt||"")>=String(old.archivedAt||""))archiveMap.set(item.id,item)}
+    const activeCandidates=[...(previous.weights||[]),...(incoming.weights||[]),...(previous.workouts||[]),...(incoming.workouts||[]),...(previous.nutrition||[]),...(incoming.nutrition||[])];
+    const archivedIds=new Set([...archiveMap.values()].filter(a=>{const active=activeCandidates.filter(r=>r&&r.id===a.id).sort((x,y)=>String(y.updatedAt||"").localeCompare(String(x.updatedAt||"")));return !active.length||String(a.archivedAt||"")>String(active[0].updatedAt||"")}).map(a=>a.id));
     const merged={
-     weights:mergeRecords(previous.weights,incoming.weights,deleted).filter(x=>!trashedIds.has(x.id)),
-     workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashedIds.has(x.id)),
-     nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted).filter(x=>!trashedIds.has(x.id)),
-     trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,
+     weights:mergeRecords(previous.weights,incoming.weights,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
+     workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
+     nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
+     trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),archive:[...archiveMap.values()].filter(a=>archivedIds.has(a.id)),deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,
      water:{...(previous.water||{}),...(incoming.water||{})},
      start:incoming.start??previous.start??210,
      goal:incoming.goal??previous.goal??155,
