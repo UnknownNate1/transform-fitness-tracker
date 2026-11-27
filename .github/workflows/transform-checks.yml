@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: transform-checks-${{ github.ref }}
+  group: transform-checks-\${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,10 +36,10 @@ jobs:
           const fs = require('node:fs');
           const vm = require('node:vm');
           const html = fs.readFileSync('index.html', 'utf8');
-          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)];
-          const inlineScripts = scripts.filter((match) => !/\\bsrc\\s*=/.test(match[1]));
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+          const inlineScripts = scripts.filter((match) => !/\bsrc\s*=/.test(match[1]));
           if (inlineScripts.length !== 1) {
-            throw new Error(`Expected exactly one inline app script; found ${inlineScripts.length}`);
+            throw new Error(\`Expected exactly one inline app script; found \${inlineScripts.length}\`);
           }
           new vm.Script(inlineScripts[0][2], { filename: 'index.html:inline-script' });
           console.log('Inline application JavaScript syntax is valid.');
@@ -57,8 +57,8 @@ jobs:
             throw new Error('PWA manifest has no app icons.');
           }
           for (const icon of manifest.icons) {
-            if (!fs.existsSync(icon.src.replace(/^\\.\\//, ''))) {
-              throw new Error(`Manifest icon not found: ${icon.src}`);
+            if (!fs.existsSync(icon.src.replace(/^\.\//, ''))) {
+              throw new Error(\`Manifest icon not found: \${icon.src}\`);
             }
           }
           console.log('PWA manifest and referenced icons are valid.');
@@ -70,8 +70,8 @@ jobs:
           const fs = require('node:fs');
           const html = fs.readFileSync('index.html', 'utf8');
           const expected = ['home', 'workout', 'weight', 'nutrition', 'history', 'settings'];
-          const actual = new Set([...html.matchAll(/<section\\b[^>]*\\bid=["']([^"']+)["']/gi)].map((match) => match[1]));
+          const actual = new Set([...html.matchAll(/<section\b[^>]*\bid=["']([^"']+)["']/gi)].map((match) => match[1]));
           const missing = expected.filter((id) => !actual.has(id));
-          if (missing.length) throw new Error(`Missing core screen sections: ${missing.join(', ')}`);
+          if (missing.length) throw new Error(\`Missing core screen sections: \${missing.join(', ')}\`);
           console.log('All six core screen sections are present.');
           NODE
