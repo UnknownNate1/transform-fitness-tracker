@@ -25,6 +25,7 @@ label{font-size:13px;color:var(--muted);display:block}.row{display:flex;gap:9px;
 <main>
 <section id="home" class="page active">
 <h1>Your progress, one day at a time.</h1><p class="muted">A simple tracker built around your equipment-free, right-arm-only setup.</p>
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 18px"><button type="button" onclick="refreshApp()" aria-label="Refresh TRANSFORM app">↻ Refresh app</button><span class="tiny">Reload the latest app version</span></div>
 <div class="grid">
 <div class="card"><div class="muted">Latest weight</div><div class="metric" id="latestWeight">— <small>lb</small></div><div class="tiny" id="weightDate">Log your first weigh-in</div></div>
 <div class="card"><div class="muted">Starting point</div><div class="metric">210 <small>lb*</small></div><div class="tiny">Your estimate · editable in Settings</div></div>
@@ -86,6 +87,7 @@ let data=load();
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY))||{};return {...{weights:[],workouts:[],nutrition:[],water:{},start:210,goal:155,height:''},...d,nutrition:d.nutrition||[],water:d.water||{}}}catch(e){return{weights:[],workouts:[],nutrition:[],water:{},start:210,goal:155,height:''}}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
 function showPage(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));window.scrollTo(0,0)}
+function refreshApp(){const next=window.location.pathname+'?refresh='+Date.now();window.location.replace(next)}
 function renderExercises(){document.getElementById('exerciseList').innerHTML=starter.map((e,i)=>'<div class="exercise"><label class="checkrow"><input type="checkbox" class="done" data-index="'+i+'"><span><strong>'+e.name+'</strong><p>'+e.dose+' · '+e.detail+'</p></span></label></div>').join('');document.querySelectorAll('.done').forEach(x=>x.addEventListener('change',()=>{document.getElementById('finishWorkout').disabled=!document.querySelector('.done:checked')}))}
 function resetChecks(){document.querySelectorAll('.done').forEach(x=>x.checked=false);document.getElementById('finishWorkout').disabled=true;document.getElementById('sessionStatus').textContent='Not started'}
 function finishSession(){const done=[...document.querySelectorAll('.done:checked')].map(x=>starter[+x.dataset.index].name);if(!done.length)return;data.workouts.unshift({date:new Date().toISOString().slice(0,10),done,note:document.getElementById('workoutNote').value.trim()});document.getElementById('workoutNote').value='';resetChecks();document.getElementById('sessionStatus').textContent='Logged';save();showPage('history')}
