@@ -7,7 +7,7 @@ export default {
   if(origin!==ALLOWED_ORIGIN) return json({error:"Origin not allowed."},403);
   if(request.method==="OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":ALLOWED_ORIGIN,"Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"Content-Type, X-Transform-Passcode","Access-Control-Max-Age":"86400","Vary":"Origin"}});
   if(request.method!=="POST") return json({error:"Use POST."},405);
-  if(!env.GEMINI_API_KEY||!env.APP_PASSCODE) return json({error:"Scanner backend is missing its secure settings.",missing:{GEMINI_API_KEY:!env.GEMINI_API_KEY,APP_PASSCODE:!env.APP_PASSCODE}},503);
+  if(!env.GEMINI_API_KEY||!env.APP_PASSCODE){const missing=[!env.GEMINI_API_KEY?"GEMINI_API_KEY":null,!env.APP_PASSCODE?"APP_PASSCODE":null].filter(Boolean);return json({error:"Scanner backend is missing: "+missing.join(", ")+".",missing},503);}
   if(request.headers.get("X-Transform-Passcode")!==env.APP_PASSCODE) return json({error:"Incorrect scanner access code."},401);
   const length=Number(request.headers.get("Content-Length")||0);
   if(length>6_000_000) return json({error:"Photo is too large. Try a smaller image."},413);
