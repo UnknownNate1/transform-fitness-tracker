@@ -1,0 +1,77 @@
+name: TRANSFORM safety checks
+
+on:
+  push:
+    branches:
+      - design/obsidian-gold-preview
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: transform-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-validation:
+    name: Validate app files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate web app JavaScript syntax
+        run: |
+          node --check sw.js
+          node <<'NODE'
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)];
+          const inlineScripts = scripts.filter((match) => !/\\bsrc\\s*=/.test(match[1]));
+          if (inlineScripts.length !== 1) {
+            throw new Error(`Expected exactly one inline app script; found ${inlineScripts.length}`);
+          }
+          new vm.Script(inlineScripts[0][2], { filename: 'index.html:inline-script' });
+          console.log('Inline application JavaScript syntax is valid.');
+          NODE
+
+      - name: Validate PWA manifest
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
+          if (!manifest.name || !manifest.start_url || manifest.display !== 'standalone') {
+            throw new Error('PWA manifest is missing required installability fields.');
+          }
+          if (!Array.isArray(manifest.icons) || manifest.icons.length === 0) {
+            throw new Error('PWA manifest has no app icons.');
+          }
+          for (const icon of manifest.icons) {
+            if (!fs.existsSync(icon.src.replace(/^\\.\\//, ''))) {
+              throw new Error(`Manifest icon not found: ${icon.src}`);
+            }
+          }
+          console.log('PWA manifest and referenced icons are valid.');
+          NODE
+
+      - name: Verify core app screens remain present
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const expected = ['home', 'workout', 'weight', 'nutrition', 'history', 'settings'];
+          const actual = new Set([...html.matchAll(/<section\\b[^>]*\\bid=["']([^"']+)["']/gi)].map((match) => match[1]));
+          const missing = expected.filter((id) => !actual.has(id));
+          if (missing.length) throw new Error(`Missing core screen sections: ${missing.join(', ')}`);
+          console.log('All six core screen sections are present.');
+          NODE
