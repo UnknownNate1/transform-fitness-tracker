@@ -60,12 +60,13 @@ export default {
      workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)&&!recoveryIds.has(x.id)),
      nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)&&!recoveryIds.has(x.id)),
      trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),archive:[...archiveMap.values()].filter(a=>archivedIds.has(a.id)),recovery:[...recoveryMap.values()],deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,recoveryRetentionDays:incoming.recoveryRetentionDays??previous.recoveryRetentionDays??30,defaultRecordDestination:incoming.defaultRecordDestination??previous.defaultRecordDestination??"ask",
-     water:{...(previous.water||{}),...(incoming.water||{})},
-     start:incoming.start??previous.start??210,
-     goal:incoming.goal??previous.goal??155,
-     height:incoming.height??previous.height??""
+     water:{...(previous.water||{})},waterUpdatedAt:{...(previous.waterUpdatedAt||{}),...(incoming.waterUpdatedAt||{})},
+     start:incoming.settingsUpdatedAt&&String(incoming.settingsUpdatedAt)>=String(previous.settingsUpdatedAt||"")?incoming.start??previous.start??210:previous.start??incoming.start??210,
+     goal:incoming.settingsUpdatedAt&&String(incoming.settingsUpdatedAt)>=String(previous.settingsUpdatedAt||"")?incoming.goal??previous.goal??155:previous.goal??incoming.goal??155,
+     height:incoming.settingsUpdatedAt&&String(incoming.settingsUpdatedAt)>=String(previous.settingsUpdatedAt||"")?incoming.height??previous.height??"":previous.height??incoming.height??"",
+     settingsUpdatedAt:String(incoming.settingsUpdatedAt||"")>=String(previous.settingsUpdatedAt||"")?incoming.settingsUpdatedAt:previous.settingsUpdatedAt
     };
-    for(const day of Object.keys(merged.water)) merged.water[day]=Math.max(Number(previous.water?.[day]||0),Number(incoming.water?.[day]||0));
+    for(const day of new Set([...Object.keys(previous.water||{}),...Object.keys(incoming.water||{})])){const pAt=String(previous.waterUpdatedAt?.[day]||""),iAt=String(incoming.waterUpdatedAt?.[day]||"");if(iAt&&iAt>=pAt)merged.water[day]=Number(incoming.water?.[day]||0);else if(pAt)merged.water[day]=Number(previous.water?.[day]||0);else merged.water[day]=Math.max(Number(previous.water?.[day]||0),Number(incoming.water?.[day]||0));if(iAt||pAt)merged.waterUpdatedAt[day]=iAt>=pAt?iAt:pAt}
     await env.TRANSFORM_DB.prepare("INSERT INTO transform_data (user_key,data_json,updated_at) VALUES (?,?,?) ON CONFLICT(user_key) DO UPDATE SET data_json=excluded.data_json, updated_at=excluded.updated_at").bind("main",JSON.stringify(merged),new Date().toISOString()).run();
     return json({data:merged,syncedAt:new Date().toISOString()});
    }catch(e){return json({error:"Shared storage error: "+String(e?.message||"database operation failed").slice(0,180)},500)}
