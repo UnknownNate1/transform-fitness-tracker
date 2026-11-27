@@ -19,7 +19,7 @@ export default {
   try {
    const upstream=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+MODEL+":generateContent",{
     method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":env.GEMINI_API_KEY},
-    body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:"image/jpeg",data:body.imageBase64}}]}],generationConfig:{responseMimeType:"application/json",temperature:0.2,maxOutputTokens:500}})
+    body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:"image/jpeg",data:body.imageBase64}}]}],generationConfig:{responseMimeType:"application/json",responseSchema:{type:"OBJECT",properties:{foodName:{type:"STRING"},portion:{type:"STRING"},calories:{type:"NUMBER"},protein_g:{type:"NUMBER"},carbs_g:{type:"NUMBER"},fat_g:{type:"NUMBER"},confidence:{type:"STRING",enum:["low","medium","high"]},notes:{type:"STRING"}},required:["foodName","portion","calories","protein_g","carbs_g","fat_g","confidence","notes"]},temperature:0.2,maxOutputTokens:500}})
    });
    const payload=await upstream.json();
    if(!upstream.ok) {
