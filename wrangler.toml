@@ -3,3 +3,8 @@ name = "lucky-credit-529d"
 main = "food-scan-worker.js"
 compatibility_date = "2026-11-27"
 workers_dev = true
+
+[[d1_databases]]
+binding = "TRANSFORM_DB"
+database_name = "transform-data"
+database_id = "7c423b8b-a308-4fe3-acdf-3936c3877194"
