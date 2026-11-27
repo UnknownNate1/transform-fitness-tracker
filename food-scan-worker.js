@@ -30,12 +30,12 @@ export default {
     for(const key of ["weights","workouts","nutrition"]) if(!Array.isArray(incoming[key])) incoming[key]=[];
     const found=await env.TRANSFORM_DB.prepare("SELECT data_json FROM transform_data WHERE user_key = ?").bind("main").first();
     const previous=found?JSON.parse(found.data_json):{};
-    const deleted=new Set([...(Array.isArray(previous.deletedIds)?previous.deletedIds:[]),...(Array.isArray(incoming.deletedIds)?incoming.deletedIds:[])]);
+    const deleted=new Set([...(Array.isArray(previous.deletedIds)?previous.deletedIds:[]),...(Array.isArray(incoming.deletedIds)?incoming.deletedIds:[])]);const restored=new Set([...(Array.isArray(previous.restoredIds)?previous.restoredIds:[]),...(Array.isArray(incoming.restoredIds)?incoming.restoredIds:[])]);const trashMap=new Map();for(const item of [...(Array.isArray(previous.trash)?previous.trash:[]),...(Array.isArray(incoming.trash)?incoming.trash:[])]){if(!item||!item.id||deleted.has(item.id)||restored.has(item.id))continue;const old=trashMap.get(item.id);if(!old||String(item.deletedAt||"")>=String(old.deletedAt||""))trashMap.set(item.id,item)}const trashed=new Set(trashMap.keys());
     const merged={
-     weights:mergeRecords(previous.weights,incoming.weights,deleted),
-     workouts:mergeRecords(previous.workouts,incoming.workouts,deleted),
-     nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted),
-     deletedIds:[...deleted],
+     weights:mergeRecords(previous.weights,incoming.weights,deleted).filter(x=>!trashed.has(x.id)||restored.has(x.id)),
+     workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashed.has(x.id)||restored.has(x.id)),
+     nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted).filter(x=>!trashed.has(x.id)||restored.has(x.id)),
+     trash:[...trashMap.values()],deletedIds:[...deleted],restoredIds:[...restored],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,
      water:{...(previous.water||{}),...(incoming.water||{})},
      start:incoming.start??previous.start??210,
      goal:incoming.goal??previous.goal??155,
