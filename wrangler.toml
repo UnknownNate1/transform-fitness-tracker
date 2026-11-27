@@ -4,6 +4,9 @@ main = "food-scan-worker.js"
 compatibility_date = "2026-11-27"
 workers_dev = true
 
+[triggers]
+crons = ["0 * * * *"]
+
 [[d1_databases]]
 binding = "TRANSFORM_DB"
 database_name = "transform-data"
