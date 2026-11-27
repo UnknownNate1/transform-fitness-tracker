@@ -22,7 +22,10 @@ export default {
     body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:"image/jpeg",data:body.imageBase64}}]}],generationConfig:{responseMimeType:"application/json",temperature:0.2,maxOutputTokens:500}})
    });
    const payload=await upstream.json();
-   if(!upstream.ok) return json({error:"The AI service could not analyze this image. Check the API key or try again later."},502);
+   if(!upstream.ok) {
+    const detail=String(payload?.error?.message||"No additional details returned by Gemini.").replace(/[\\r\\n]+/g," ").slice(0,300);
+    return json({error:"Gemini API error (HTTP "+upstream.status+"): "+detail},502);
+   }
    const raw=payload.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
    const result=JSON.parse(raw);
    const out={foodName:String(result.foodName||"Meal").slice(0,100),portion:String(result.portion||"1 serving").slice(0,100),calories:Number(result.calories),protein_g:Number(result.protein_g),carbs_g:Number(result.carbs_g),fat_g:Number(result.fat_g),confidence:["low","medium","high"].includes(result.confidence)?result.confidence:"low",notes:String(result.notes||"Photo-based estimate; ingredients and portion size may be uncertain.").slice(0,240)};
