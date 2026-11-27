@@ -97,6 +97,6 @@ document.getElementById('importFile').addEventListener('change',async e=>{const 
 function clearData(){if(confirm('Delete all weight and workout records from this browser? Export a backup first if you want to keep them.')){data={weights:[],workouts:[],nutrition:[],water:{},start:210,goal:155,height:''};save();resetChecks()}}
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 document.getElementById('weightDateInput').value=new Date().toISOString().slice(0,10);renderExercises();render();
-if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update()}catch(e){console.warn('App update check failed',e)}});
 </script>
 </body></html>
