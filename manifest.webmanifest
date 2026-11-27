@@ -1,0 +1,10 @@
+{
+  "name": "TRANSFORM Fitness Tracker",
+  "short_name": "TRANSFORM",
+  "description": "A private, phone-first fitness and progress tracker.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0c1018",
+  "theme_color": "#10131b",
+  "icons": []
+}
