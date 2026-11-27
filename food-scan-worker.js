@@ -11,6 +11,26 @@ function mergeRecords(oldList,newList,deleted){
  return [...map.values()];
 }
 export default {
+ async scheduled(controller, env, ctx) {
+  if(!env.TRANSFORM_DB)return;
+  try{
+   const row=await env.TRANSFORM_DB.prepare("SELECT data_json FROM transform_data WHERE user_key = ?").bind("main").first();
+   if(!row)return;
+   const data=JSON.parse(row.data_json);
+   const days=Number(data.trashRetentionDays??30);
+   if(!days)return;
+   const cutoff=Date.now()-days*86400000;
+   const keep=[];
+   const deleted=new Set(Array.isArray(data.deletedIds)?data.deletedIds:[]);
+   for(const item of Array.isArray(data.trash)?data.trash:[]){
+    if(Date.parse(item.deletedAt||"")<cutoff){if(item.id)deleted.add(item.id)}else keep.push(item);
+   }
+   if(keep.length!==(data.trash||[]).length){
+    data.trash=keep;data.deletedIds=[...deleted];
+    await env.TRANSFORM_DB.prepare("UPDATE transform_data SET data_json = ?, updated_at = ? WHERE user_key = ?").bind(JSON.stringify(data),new Date().toISOString(),"main").run();
+   }
+  }catch(error){console.error("Scheduled TRANSFORM cleanup failed",error)}
+ },
  async fetch(request, env) {
   const origin=request.headers.get("Origin")||"";
   if(origin!==ALLOWED_ORIGIN) return json({error:"Origin not allowed."},403);
@@ -39,7 +59,7 @@ export default {
      weights:mergeRecords(previous.weights,incoming.weights,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
      workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
      nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
-     trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),archive:[...archiveMap.values()].filter(a=>archivedIds.has(a.id)),deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,
+     trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),archive:[...archiveMap.values()].filter(a=>archivedIds.has(a.id)),deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,defaultRecordDestination:incoming.defaultRecordDestination??previous.defaultRecordDestination??"ask",
      water:{...(previous.water||{}),...(incoming.water||{})},
      start:incoming.start??previous.start??210,
      goal:incoming.goal??previous.goal??155,
