@@ -29,7 +29,7 @@ export default {
    const raw=payload.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
    const result=JSON.parse(raw);
    const out={foodName:String(result.foodName||"Meal").slice(0,100),portion:String(result.portion||"1 serving").slice(0,100),calories:Number(result.calories),protein_g:Number(result.protein_g),carbs_g:Number(result.carbs_g),fat_g:Number(result.fat_g),confidence:["low","medium","high"].includes(result.confidence)?result.confidence:"low",notes:String(result.notes||"Photo-based estimate; ingredients and portion size may be uncertain.").slice(0,240)};
-   if(![out.calories,out.protein_g,out.carbs_g,out.fat_g].every(Number.isFinite)||out.calories<0||out.calories>5000||out.protein_g<0||out.protein_g>300||out.carbs_g<0||out.carbs_g>500||out.fat_g<0||out.fat_g>300) throw new Error("Invalid nutrition estimate");
+   const invalid=[]; for(const [k,v,max] of [["calories",out.calories,5000],["protein_g",out.protein_g,300],["carbs_g",out.carbs_g,500],["fat_g",out.fat_g,300]]) if(!Number.isFinite(v)||v<0||v>max) invalid.push(k+"="+String(v)); if(invalid.length) throw new Error("Invalid nutrition estimate: "+invalid.join(", "));
    return json(out);
   } catch(e) { const detail=String(e?.message||"Unknown processing error").replace(/[\\r\\n]+/g," ").slice(0,240); return json({error:"Scanner processing error: "+detail},422); }
  }
