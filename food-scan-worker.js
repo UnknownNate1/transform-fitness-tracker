@@ -3,7 +3,11 @@ const MODEL = "gemini-3.5-flash-lite";
 const json = (body, status=200) => new Response(JSON.stringify(body), {status, headers:{"Content-Type":"application/json","Cache-Control":"no-store","Access-Control-Allow-Origin":ALLOWED_ORIGIN,"Vary":"Origin"}});
 function mergeRecords(oldList,newList,deleted){
  const map=new Map();
- for(const item of [...(Array.isArray(oldList)?oldList:[]),...(Array.isArray(newList)?newList:[])]) if(item&&item.id&&!deleted.has(item.id)) map.set(item.id,item);
+ for(const item of [...(Array.isArray(oldList)?oldList:[]),...(Array.isArray(newList)?newList:[])]) {
+  if(!item||!item.id||deleted.has(item.id)) continue;
+  const current=map.get(item.id);
+  if(!current||String(item.updatedAt||"")>=String(current.updatedAt||"")) map.set(item.id,item);
+ }
  return [...map.values()];
 }
 export default {
