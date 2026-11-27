@@ -1,5 +1,5 @@
 const ALLOWED_ORIGIN = "https://unknownnate1.github.io";
-const MODEL = "gemini-2.5-flash-lite";
+const MODEL = "gemini-3.5-flash-lite";
 const json = (body, status=200) => new Response(JSON.stringify(body), {status, headers:{"Content-Type":"application/json","Cache-Control":"no-store","Access-Control-Allow-Origin":ALLOWED_ORIGIN,"Vary":"Origin"}});
 export default {
  async fetch(request, env) {
