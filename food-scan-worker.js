@@ -55,11 +55,13 @@ export default {
     const archiveMap=new Map();for(const item of [...(Array.isArray(previous.archive)?previous.archive:[]),...(Array.isArray(incoming.archive)?incoming.archive:[])]){if(!item||!item.id||deleted.has(item.id))continue;const old=archiveMap.get(item.id);if(!old||String(item.archivedAt||"")>=String(old.archivedAt||""))archiveMap.set(item.id,item)}
     const activeCandidates=[...(previous.weights||[]),...(incoming.weights||[]),...(previous.workouts||[]),...(incoming.workouts||[]),...(previous.nutrition||[]),...(incoming.nutrition||[])];
     const archivedIds=new Set([...archiveMap.values()].filter(a=>{const active=activeCandidates.filter(r=>r&&r.id===a.id).sort((x,y)=>String(y.updatedAt||"").localeCompare(String(x.updatedAt||"")));return !active.length||String(a.archivedAt||"")>String(active[0].updatedAt||"")}).map(a=>a.id));
+    const recoveryMap=new Map();for(const item of [...(Array.isArray(previous.recovery)?previous.recovery:[]),...(Array.isArray(incoming.recovery)?incoming.recovery:[])]){if(!item||!item.id||deleted.has(item.id))continue;const old=recoveryMap.get(item.id);if(!old||String(item.recoveryAt||'')>=String(old.recoveryAt||''))recoveryMap.set(item.id,item)}
+    const recoveryDays=Number(incoming.recoveryRetentionDays??previous.recoveryRetentionDays??30),recoveryCutoff=recoveryDays?Date.now()-recoveryDays*86400000:0;for(const [id,item] of recoveryMap){if(recoveryDays&&Date.parse(item.recoveryAt||'')<recoveryCutoff){deleted.add(id);recoveryMap.delete(id)}}
     const merged={
      weights:mergeRecords(previous.weights,incoming.weights,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
      workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
      nutrition:mergeRecords(previous.nutrition,incoming.nutrition,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
-     trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),archive:[...archiveMap.values()].filter(a=>archivedIds.has(a.id)),deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,defaultRecordDestination:incoming.defaultRecordDestination??previous.defaultRecordDestination??"ask",
+     trash:[...trashMap.values()].filter(t=>trashedIds.has(t.id)),archive:[...archiveMap.values()].filter(a=>archivedIds.has(a.id)),recovery:[...recoveryMap.values()],deletedIds:[...deleted],trashRetentionDays:incoming.trashRetentionDays??previous.trashRetentionDays??30,recoveryRetentionDays:incoming.recoveryRetentionDays??previous.recoveryRetentionDays??30,defaultRecordDestination:incoming.defaultRecordDestination??previous.defaultRecordDestination??"ask",
      water:{...(previous.water||{}),...(incoming.water||{})},
      start:incoming.start??previous.start??210,
      goal:incoming.goal??previous.goal??155,
