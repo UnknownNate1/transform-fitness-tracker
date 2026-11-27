@@ -1,10 +1,17 @@
 {
-  "name": "TRANSFORM Fitness Tracker",
+  "name": "TRANSFORM — Fitness · Nutrition · Wellness",
   "short_name": "TRANSFORM",
-  "description": "A private, phone-first fitness and progress tracker.",
+  "description": "A private, phone-first fitness, nutrition and wellness tracker.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0c1018",
-  "theme_color": "#10131b",
-  "icons": []
+  "background_color": "#08090b",
+  "theme_color": "#090909",
+  "icons": [
+    {
+      "src": "./transform-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
