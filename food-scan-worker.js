@@ -17,16 +17,14 @@ export default {
    const row=await env.TRANSFORM_DB.prepare("SELECT data_json FROM transform_data WHERE user_key = ?").bind("main").first();
    if(!row)return;
    const data=JSON.parse(row.data_json);
-   const days=Number(data.trashRetentionDays??30);
-   if(!days)return;
-   const cutoff=Date.now()-days*86400000;
-   const keep=[];
-   const deleted=new Set(Array.isArray(data.deletedIds)?data.deletedIds:[]);
+   const days=Number(data.trashRetentionDays??30),recoveryDays=Number(data.recoveryRetentionDays??30),now=Date.now();
+   const trashKeep=[],recovery=[...(Array.isArray(data.recovery)?data.recovery:[])],deleted=new Set(Array.isArray(data.deletedIds)?data.deletedIds:[]);
    for(const item of Array.isArray(data.trash)?data.trash:[]){
-    if(Date.parse(item.deletedAt||"")<cutoff){if(item.id)deleted.add(item.id)}else keep.push(item);
+    if(days&&Date.parse(item.deletedAt||"")<now-days*86400000){if(item.id&&!recovery.some(x=>x.id===item.id))recovery.unshift({...item,recoveryAt:new Date().toISOString(),recoveryReason:"Trash retention expired"})}else trashKeep.push(item);
    }
-   if(keep.length!==(data.trash||[]).length){
-    data.trash=keep;data.deletedIds=[...deleted];
+   const recoveryKeep=[];for(const item of recovery){if(recoveryDays&&Date.parse(item.recoveryAt||"")<now-recoveryDays*86400000){if(item.id)deleted.add(item.id)}else recoveryKeep.push(item)}
+   if(trashKeep.length!==(data.trash||[]).length||recoveryKeep.length!==(data.recovery||[]).length){
+    data.trash=trashKeep;data.recovery=recoveryKeep;data.deletedIds=[...deleted];
     await env.TRANSFORM_DB.prepare("UPDATE transform_data SET data_json = ?, updated_at = ? WHERE user_key = ?").bind(JSON.stringify(data),new Date().toISOString(),"main").run();
    }
   }catch(error){console.error("Scheduled TRANSFORM cleanup failed",error)}
@@ -56,7 +54,7 @@ export default {
     const activeCandidates=[...(previous.weights||[]),...(incoming.weights||[]),...(previous.workouts||[]),...(incoming.workouts||[]),...(previous.nutrition||[]),...(incoming.nutrition||[])];
     const archivedIds=new Set([...archiveMap.values()].filter(a=>{const active=activeCandidates.filter(r=>r&&r.id===a.id).sort((x,y)=>String(y.updatedAt||"").localeCompare(String(x.updatedAt||"")));return !active.length||String(a.archivedAt||"")>String(active[0].updatedAt||"")}).map(a=>a.id));
     const recoveryMap=new Map();for(const item of [...(Array.isArray(previous.recovery)?previous.recovery:[]),...(Array.isArray(incoming.recovery)?incoming.recovery:[])]){if(!item||!item.id||deleted.has(item.id))continue;const old=recoveryMap.get(item.id);if(!old||String(item.recoveryAt||'')>=String(old.recoveryAt||''))recoveryMap.set(item.id,item)}
-    const recoveryDays=Number(incoming.recoveryRetentionDays??previous.recoveryRetentionDays??30),recoveryCutoff=recoveryDays?Date.now()-recoveryDays*86400000:0;for(const [id,item] of recoveryMap){if(recoveryDays&&Date.parse(item.recoveryAt||'')<recoveryCutoff){deleted.add(id);recoveryMap.delete(id)}}
+    const recoveryDays=Number(incoming.recoveryRetentionDays??previous.recoveryRetentionDays??30),recoveryCutoff=recoveryDays?Date.now()-recoveryDays*86400000:0;for(const [id,item] of recoveryMap){const active=activeCandidates.filter(r=>r&&r.id===id).sort((x,y)=>String(y.updatedAt||"").localeCompare(String(x.updatedAt||"")));const restored=active.length&&String(active[0].updatedAt||"")>String(item.recoveryAt||"");if(restored||(recoveryDays&&Date.parse(item.recoveryAt||"")<recoveryCutoff)){if(!restored)deleted.add(id);recoveryMap.delete(id)}}
     const merged={
      weights:mergeRecords(previous.weights,incoming.weights,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
      workouts:mergeRecords(previous.workouts,incoming.workouts,deleted).filter(x=>!trashedIds.has(x.id)&&!archivedIds.has(x.id)),
